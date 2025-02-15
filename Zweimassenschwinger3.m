@@ -77,11 +77,14 @@ cond = [X1(0) == par.x1_0; V1(0) == par.v1_0; X2(0) == par.x2_0; V2(0) == par.v2
 
 sol_a = dsolve(dgl_a, cond);
 %}
+timeToc = zeros(n-1,1); 
 
 for index = linspace(2, n, n-1)
-
+    tic
+    
     inital1 = [sys1(index-1,1);sys1(index-1,2)];
     inital2 = [sys2(index-1,1);sys2(index-1,2)];
+    
     
     dgl1 = @(t,x,v) [v; (-d1 * v - c1 * x + u(index-1) + (t-t_sol) * (u(index) - u(index-1))/h)/m1];
     dgl2 = @(t,x,v) [v; (-d2 * v - c2 * x - u(index-1) - (t-t_sol) * (u(index) - u(index-1))/h)/m2];
@@ -89,6 +92,7 @@ for index = linspace(2, n, n-1)
     [t,sol1] = ode45(@(t,x) dgl1(t,x(1),x(2)),[t_sol, t_sol+h], inital1);
     [t,sol2] = ode45(@(t,x) dgl2(t,x(1),x(2)),[t_sol, t_sol+h], inital2);
 
+    
     u(index+1) = c3 * (sol2(end,1) - sol1(end,1)) + d3 * (sol2(end,2)- sol1(end,2));
 
     dgl1 = @(t,x,v) [v; (-d1 * v - c1 * x + u(index) + (t-t_sol) * (u(index+1) - u(index))/h)/m1];
@@ -103,13 +107,15 @@ for index = linspace(2, n, n-1)
     u(index+1) = c3 * (sys2(index, 1) - sys1(index, 1)) + d3 * (sys2(index, 2) - sys1(index, 2));
 
     t_sol = t_sol + h;
+    
+    timeToc(index-1) = toc;
 
      if(mod(index,(n/100))==0)
         fprintf("|");
     end
 end
 
-
+mean(timeToc)
 
 %% plotting
 
@@ -146,10 +152,17 @@ legend("x2", "v2","x1x", "v1n");
 
 
 
+%{
+function dxdt = dgl(t,x,v,c,d,m, u0, u1, t0,h)
+    dxdt = zeros(2,1);
+    dxdt(1) = v;
+    dxdt(2) = (-c * x - d * v ...
+        -u0 - (t-t0) * (u1-u0)/(h))/m;
+end
 %% Ideen
 
 
-%{
+
 Zeitpunkte der ode45 vorgeben - sol1 kann vorher initialisiert werden
 
 functions verwenden um u und dgl aufzustellen
