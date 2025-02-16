@@ -25,20 +25,20 @@ u = zeros(n+1,1);
 
 %% u bestimmen durch numerisches berechen der ersten Schritte
 ode = @(t,x) [x(2); (-c1 * x(1) -d1 * x(2) + c3*(x(3)-x(1)) + d3 * (x(4) - x(2)))/m1;
-              x(3); (-c2 * x(3) -d2 * x(4) - c3*(x(3)-x(1)) - d3 * (x(4) - x(2)))/m2];
+              x(4); (-c2 * x(3) -d2 * x(4) - c3*(x(3)-x(1)) - d3 * (x(4) - x(2)))/m2];
 
 [time_sol,sol] = ode45(ode,[0 h], initial_conditions);
 
-u(1) =  c3 * (sol(1,3)- sol(1,1)) + d3 * (sol(1,2) - sol(1,4));
-u(2) =  c3 * (sol(end,3)- sol(end,1)) + d3 * (sol(end,2) - sol(end,4));
+%u(1) =  c3 * (sol(1,3)- sol(1,1)) + d3 * (sol(1,2) - sol(1,4));
+%u(2) =  c3 * (sol(end,3)- sol(end,1)) + d3 * (sol(end,2) - sol(end,4));
 
-%u(1) = c3 * (sys2(1,1) - sys1(1,1)) + d3 * (sys2(1,2) - sys1(1,2)); %Anfang fehlerbehaftet.
-%u(2) = u(1);
+u(1) = c3 * (sys2(1,1) - sys1(1,1)) + d3 * (sys2(1,2) - sys1(1,2)); %Anfang fehlerbehaftet.
+u(2) = u(1);
 
-%%Numerische Berechnung des Systems         wahrscheinlich falsch??
+%%Numerische Berechnung des Systems
 
 ode = @(t,x) [x(2); (-c1 * x(1) -d1 * x(2) + c3*(x(3)-x(1)) + d3 * (x(4) - x(2)))/m1;
-              x(3); (-c2 * x(3) -d2 * x(4) - c3*(x(3)-x(1)) - d3 * (x(4) - x(2)))/m2];
+              x(4); (-c2 * x(3) -d2 * x(4) - c3*(x(3)-x(1)) - d3 * (x(4) - x(2)))/m2];
 
 [time_sol,sol] = ode45(ode,time, initial_conditions);
 
@@ -52,13 +52,14 @@ for index = linspace(2, n, n-1)
     inital2 = [sys2(index-1,1);sys2(index-1,2)];
     
 
-    [t,sol1] = ode45(@(t,x) dgl(t,x(1),x(2),c1,d1,m1,u(index-1), u(index), t_sol-h, h),[t_sol, t_sol+h], inital1);
-    [t,sol2] = ode45(@(t,x) dgl(t,x(1),x(2),c2,d2,m2,-u(index-1), -u(index), t_sol-h, h),[t_sol, t_sol+h], inital2);
+    [t,sol1] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,u(index-1), u(index), t_sol-h, h),[t_sol, t_sol+h], inital1);
+
+    [t,sol2] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-u(index-1), -u(index), t_sol-h, h),[t_sol, t_sol+h], inital2);
 
     u(index+1) = c3 * (sol2(end,1) - sol1(end,1)) + d3 * (sol2(end,2)- sol1(end,2));
 
-    [t,sol1] = ode45(@(t,x) dgl(t,x(1),x(2),c1,d1,m1,u(index), u(index+1), t_sol, h),[t_sol, t_sol+h], inital1);
-    [t,sol2] = ode45(@(t,x) dgl(t,x(1),x(2),c2,d2,m2,-u(index), -u(index+1), t_sol, h),[t_sol, t_sol+h], inital2);
+    [t,sol1] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,u(index), u(index+1), t_sol, h),[t_sol, t_sol+h], inital1);
+    [t,sol2] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-u(index), -u(index+1), t_sol, h),[t_sol, t_sol+h], inital2);
     
     sys1(index, 1) = sol1(end,1); sys1(index, 2) = sol1(end,2);
     sys2(index, 1) = sol2(end,1); sys2(index, 2) = sol2(end,2);
@@ -111,7 +112,7 @@ legend("x2", "v2","x1x", "v1n");
 
 
 
-function dxdt = dgl(t,x,v,c,d,m, u0, u1, t0,h)
+function dxdt = dgl_f(t,x,v,c,d,m, u0, u1, t0,h)
     dxdt = zeros(2,1);
     dxdt(1) = v;
     dxdt(2) = (-c * x - d * v ...
@@ -119,14 +120,25 @@ function dxdt = dgl(t,x,v,c,d,m, u0, u1, t0,h)
 end
 
 
+function dxdt = dgl_d(t,x,v,c,d,m,x0,x1,v0,v1,c3,d3,t0,h)
+    
+    dxdt = zeros(2,1);
+    dxdt(1) = v;
+    dxdt(2) = (-c * x - d * v ...
+        + c3 * (interp(t,x0,x1,t0,h) - x)...
+        + d3 * (interp(t,v0,v1,t0,h) - v))/m;
+
+    function p = interp(t,p0,p1,t0,h)
+        p = p0 + (t-t0) * (p1-p0)/h;
+    end
+
+end
+
 %% Ideen
 %{
 
 
 Zeitpunkte der ode45 vorgeben - sol1 kann vorher initialisiert werden
-
-ganzes System die ersten schritte numerisch berechnen, um die u's zu
-bestimmen
 
 Die anderen Übertragungsfunktionen implementieremn
 
