@@ -21,11 +21,6 @@ sys2 = zeros(n,2);
 sys1(1,:) = initial_conditions([1,2]);
 sys2(1,:) = initial_conditions([3,4]);
 
-%u = zeros(n+1,1);
-u = zeros(2);
-
-u(1) = c3 * (sys2(1,1) - sys1(1,1)) + d3 * (sys2(1,2) - sys1(1,2)); %Anfang fehlerbehaftet.
-u(2) = u(1);
 
 %%Numerische Berechnung des Systems
 
@@ -34,22 +29,32 @@ ode = @(t,x) [x(2); (-c1 * x(1) -d1 * x(2) + c3*(x(3)-x(1)) + d3 * (x(4) - x(2))
 
 [time_sol,sol] = ode45(ode,time, initial_conditions);
 
+
+%%Numerische Berechnung des ersten Zeitschrittes
+
+[~,sol_init] = ode45(ode,[0,-h], initial_conditions);   %sol_init = [x1,v1,x2,v2] mit index = 1 t = 0, index = end t = -h
+
+
+
 %Speicher der Zeitmessung
 %timeToc = zeros(n-1,1);
 
 %% Force - Force
 
+
+initial_conditions = [initial_conditions, u(c3,d3,sol_init(end,[1 2]), sol_init(end,[3 4])), u(c3,d3,sol_init(1,[1 2]), sol_init(1,[3 4]))];
+
 for index = linspace(1,n,n)
 
-    [sys1(index,:), sys2(index,:),u_now] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,u(1),u(2),t_sol-h,t_sol,h,initial_conditions);
+    [sys1(index,:), sys2(index,:),u_now] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,initial_conditions);
 
-    u = [u(2),u_now];
+    initial_conditions([5,6]) = [initial_conditions(6),u_now];
 
-    [sys1(index,:), sys2(index,:),u_now] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,u(1),u(2),t_sol,t_sol,h,initial_conditions);
+    [sys1(index,:), sys2(index,:),u_now] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,initial_conditions);
 
-    u(2) = u_now;
+    initial_conditions(6) = u_now;
 
-    initial_conditions = [sys1(index,:),sys2(index,:)];
+    initial_conditions([1,2,3,4]) = [sys1(index,:),sys2(index,:)];
 
     t_sol = t_sol + h;
 
@@ -61,20 +66,17 @@ end
 
 %% Force - Displacement
 
-%{
-% u in initila_sonditions speichern
-
-initial = [initial_conditions, u(1), u(2), initial_conditions ]
+initial_conditions = [initial_conditions, u(c3,d3,sol_init(end,[1 2]), sol_init(end,[3 4])), u(c3,d3,sol_init(1,[1 2]),0,0, sol_init(1,[3 4])), [sol_init(1,1),sol_init(end,1)], [sol_init(1,2),sol_init(end,2)]];
 
 for index = linspace(1,n,n)
 
     [sys1(index,:), sys2(index,:),u_now] = cosim_F_D(c1,c2,c3,d1,d2,d3,m1,m2,u(1),u(2),sys1(index-2,1),sys1(index-2, 2),sys1(index-1,1),sys1(index-1, 2), t_sol-h,t_sol,h,initial_conditions);
 
-    u = [u(2),u_now];
+    initial_conditions([5,6,7,8,9,10,11,12]) = [initial_conditions(6), u_now, 0, 0, initial_conditions(10), sys1(index,1), initial_conditions(12), sys1(index,2)];
 
     [sys1(index,:), sys2(index,:),u_now] =cosim_F_D(c1,c2,c3,d1,d2,d3,m1,m2,u(1),u(2),sys1(index-1,1),sys1(index-1, 2),sys1(index,1),sys1(index, 2), t_sol,t_sol,h,initial_conditions);
 
-    u(2) = u_now;
+    %u(2) = u_now;
 
     initial_conditions = [sys1(index,:),sys2(index,:)];
 
@@ -85,8 +87,29 @@ for index = linspace(1,n,n)
     end
 end
 
+%% test 
+cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,initial_conditions);
+%% Displacement Displacement
 
 
+initial_conditions = [initial_conditions,sol_init(end,1), sol_init(1,1), sol_init(end,2), sol_init(1,2), sol_init(end,3), sol_init(1,3), sol_init(end,4), sol_init(1,4)];
+
+for index = linspace(1,n,n)
+
+   [sys1(index,:), sys2(index,:),u_now]  = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,initial_conditions);
+
+   initial_conditions([5,6,7,8,9,10,11,12]) = [initial_conditions(6), u_now(1), initial_conditions(8), u_now(2), initial_conditions(10), u_now(3), initial_conditions(12), u_now(4)];
+
+   [sys1(index,:), sys2(index,:),u_now] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,initial_conditions);
+
+   initial_conditions([1 2 3 4 6 8 10 12]) = [sys1(index,:),sys2(index,:), u_now];
+    
+end
+
+
+
+
+%{
 for index = linspace(2, 2*n, 2*n-1)
     tic
     
@@ -163,65 +186,82 @@ function dxdt = dgl_f(t,x,v,c,d,m, u0, u1, t0,h)
 end
 
 
-function dxdt = dgl_d(t,x,v,c,d,m,x0,x1,v0,v1,c3,d3,t0,h)
+function dxdt = dgl_d(t,x,v,c,d,m,ux,uv,c3,d3,t0,h)
     
     dxdt = zeros(2,1);
     dxdt(1) = v;
     dxdt(2) = (-c * x - d * v ...
-        + c3 * (interp(t,x0,x1,t0,h) - x)...
-        + d3 * (interp(t,v0,v1,t0,h) - v))/m;
+        + c3 * (interp(t,ux,t0,h) - x)...
+        + d3 * (interp(t,uv,t0,h) - v))/m;
 
-    function p = interp(t,p0,p1,t0,h)
-        p = p0 + (t-t0) * (p1-p0)/h;
+    function p = interp(t,u,t0,h)
+        p = u(1) + (t-t0) * (u(2)-u(1))/h;
     end
 
 end
 
 
 
-function [sys1,sys2,u] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,u0,u1,t0,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2],u]
+function [sys1,sys2,u] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2],u]  mit inital = [x1_0,v1_0,x2_0,v2_0,u0,u1]
 
-   [t,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,u0,u1,t0,h), [t_sol, t_sol + h], inital([1 2]));
+    u0 = u_calc(c3,d3,inital([5 7]), inital([9 11]))   
+    u1 = u_calc(c3,d3,inital([6 8]),inital([10 12]))
+   
+
+   [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,u0,u1,t0,h), [t_sol, t_sol + h], inital([1 2]));
    sys1 = sol(end,[1 2]);
 
-   [t,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-u0,-u1,t0,h), [t_sol, t_sol + h], inital([3 4]));
+   [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-u0,-u1,t0,h), [t_sol, t_sol + h], inital([3 4]));
+   sys2 = sol(end,[1 2]);
+
+   u = zeros(1,4);
+   u(1) = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
+
+   function u = u_calc(c3,d3,sys1,sys2)
+        
+    u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
+
+end
+
+end
+
+function [sys1,sys2,u] = cosim_F_D(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2],u] mit inital = [x1_0,v1_0,x2_0,v2_0,u0,u1,ux,uv] mit ux = [x2_0,x2_1] uv = [v2_0,v2_1]
+
+   [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,inital(5),inital(6),t0,h), [t_sol, t_sol + h], inital([1 2]));
+   sys1 = sol(end,[1 2]);
+
+   [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c2,d2,m2,inital(7),inital(8),c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
    sys2 = sol(end,[1 2]);
 
    u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
 
 end
 
-function [sys1,sys2,u] = cosim_F_D(c1,c2,c3,d1,d2,d3,m1,m2,u0,u1,x0,x1,v0,v1,t0,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2],u]
+function [sys1,sys2,u] = cosim_D_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2],u]   mit inital = [x1_0,v1_0,x2_0,v2_0,ux,uv,u0,u1] mit ux = [x1_0,x1_0] uv = [v1_0,v1_1]
 
-   [t,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,u0,u1,t0,h), [t_sol, t_sol + h], inital([1 2]));
-   sys1 = sol(end,[1 2]);
-
-   [t,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c2,d2,m2,x0,x1,v0,v1,c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
-   sys2 = sol(end,[1 2]);
-
-   u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
-
-end
-
-function [sys1,sys2,u] = cosim_D_F(c1,c2,c3,d1,d2,d3,m1,m2,u0,u1,x0,x1,v0,v1,t0,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2],u]
-
-    [t,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,x0,x1,v0,v1,c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
+    [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,init(5),init(6),c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
     sys1 = sol(end,[1 2]);
 
-    [t,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-u0,-u1,t0,h), [t_sol, t_sol + h], inital([3 4]));
+    [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-inital(7),-inital(8),t0,h), [t_sol, t_sol + h], inital([3 4]));
     sys2 = sol(end,[1 2]);
 
     u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
 
 end
 
-function [sys1,sys2] = cosim_D_D(c1,c2,c3,d1,d2,d3,m1,m2,x1_0,x1_1,v1_0,v1_1,x2_0,x2_1,v2_0,v2_1,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2]]
+function [sys1,sys2] = cosim_D_D(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2]]  mit inital = [x1_0,v1_0,x2_0,v2_0,ux1,uv1,ux2,uv2] mit ux1 = [x1_0,x1_1] ...
 
-    [t,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,x1_0,x1_1,v1_0,v1_1,c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
+    [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,init(5),init(6),c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
     sys1 = sol(end,[1 2]);
 
-    [t,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c2,d2,m2,x2_0,x2_1,v2_0,v2_1,c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
+    [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c2,d2,m2,inital(7),inital(8),c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
     sys2 = sol(end,[1 2]);
+
+end
+
+function u = u(c3,d3,sys1,sys2)
+        
+    u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
 
 end
 
