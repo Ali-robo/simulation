@@ -41,7 +41,7 @@ ode = @(t,x) [x(2); (-c1 * x(1) -d1 * x(2) + c3*(x(3)-x(1)) + d3 * (x(4) - x(2))
 
 %% Force - Force
 
-
+%{
 initial_conditions = [initial_conditions, u(c3,d3,sol_init(end,[1 2]), sol_init(end,[3 4])), u(c3,d3,sol_init(1,[1 2]), sol_init(1,[3 4]))];
 
 for index = linspace(1,n,n)
@@ -86,13 +86,14 @@ for index = linspace(1,n,n)
         fprintf("|");
     end
 end
-
-%% test 
-cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,initial_conditions);
+%}
 %% Displacement Displacement
 
+% = [x1_0, v1_0, x2_0, v2_0, u11_0, u11_1, u12_0, u12_1, u21_0, u21_1, u22_0, u22_1]
 
-initial_conditions = [initial_conditions,sol_init(end,1), sol_init(1,1), sol_init(end,2), sol_init(1,2), sol_init(end,3), sol_init(1,3), sol_init(end,4), sol_init(1,4)];
+% = [ x1_-1, v1_-1, x2_-1, v2_-1;x1_0, v1_0, x2_0, v2_0]
+initial_conditions = [sol_init(end,:);initial_conditions];
+debug = initial_conditions;
 
 for index = linspace(1,n,n)
 
@@ -202,10 +203,10 @@ end
 
 
 
-function [sys1,sys2,u] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2],u]  mit inital = [x1_0,v1_0,x2_0,v2_0,u0,u1]
+function [sys1,sys2,u] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,inital,kopplung)  %sol = [[x1,v1],[x2,v2],u]  mit inital = [x1_0,v1_0,x2_0,v2_0,u0,u1]
 
-    u0 = u_calc(c3,d3,inital([5 7]), inital([9 11]))   
-    u1 = u_calc(c3,d3,inital([6 8]),inital([10 12]))
+    u0 = u_calc(c3,d3,inital(1,[1 2]), inital(1,[3 4]));   
+    u1 = u_calc(c3,d3,inital(2,[1 2]), inital(1,[3 4]));
    
 
    [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,u0,u1,t0,h), [t_sol, t_sol + h], inital([1 2]));
