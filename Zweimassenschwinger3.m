@@ -35,76 +35,26 @@ ode = @(t,x) [x(2); (-c1 * x(1) -d1 * x(2) + c3*(x(3)-x(1)) + d3 * (x(4) - x(2))
 [~,sol_init] = ode45(ode,[0,-h], initial_conditions);   %sol_init = [x1,v1,x2,v2] mit index = 1 t = 0, index = end t = -h
 
 
+%% Main Loop
 
-%Speicher der Zeitmessung
-%timeToc = zeros(n-1,1);
+u = [sol_init(end,:);initial_conditions];
 
-%% Force - Force
-
-%{
-initial_conditions = [initial_conditions, u(c3,d3,sol_init(end,[1 2]), sol_init(end,[3 4])), u(c3,d3,sol_init(1,[1 2]), sol_init(1,[3 4]))];
 
 for index = linspace(1,n,n)
 
-    [sys1(index,:), sys2(index,:),u_now] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,initial_conditions);
+   [sys1(index,:), sys2(index,:)]  = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,u,initial_conditions);
 
-    initial_conditions([5,6]) = [initial_conditions(6),u_now];
+   u = [u([5 6 7 8]), sys1(index,:), sys2(index,:)];
 
-    [sys1(index,:), sys2(index,:),u_now] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,initial_conditions);
+   [sys1(index,:), sys2(index,:)] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,u,initial_conditions);
 
-    initial_conditions(6) = u_now;
+   
+   initial_conditions = [sys1(index,:),sys2(index,:)];
+   u([5 6 7 8]) =  [sys1(index,:), sys2(index,:)];
 
-    initial_conditions([1,2,3,4]) = [sys1(index,:),sys2(index,:)];
-
-    t_sol = t_sol + h;
-
-    if(mod(index,(n/100))==0)
+   if(mod(index,(n/100))==0)
         fprintf("|");
     end
-end
-
-
-%% Force - Displacement
-
-initial_conditions = [initial_conditions, u(c3,d3,sol_init(end,[1 2]), sol_init(end,[3 4])), u(c3,d3,sol_init(1,[1 2]),0,0, sol_init(1,[3 4])), [sol_init(1,1),sol_init(end,1)], [sol_init(1,2),sol_init(end,2)]];
-
-for index = linspace(1,n,n)
-
-    [sys1(index,:), sys2(index,:),u_now] = cosim_F_D(c1,c2,c3,d1,d2,d3,m1,m2,u(1),u(2),sys1(index-2,1),sys1(index-2, 2),sys1(index-1,1),sys1(index-1, 2), t_sol-h,t_sol,h,initial_conditions);
-
-    initial_conditions([5,6,7,8,9,10,11,12]) = [initial_conditions(6), u_now, 0, 0, initial_conditions(10), sys1(index,1), initial_conditions(12), sys1(index,2)];
-
-    [sys1(index,:), sys2(index,:),u_now] =cosim_F_D(c1,c2,c3,d1,d2,d3,m1,m2,u(1),u(2),sys1(index-1,1),sys1(index-1, 2),sys1(index,1),sys1(index, 2), t_sol,t_sol,h,initial_conditions);
-
-    %u(2) = u_now;
-
-    initial_conditions = [sys1(index,:),sys2(index,:)];
-
-    t_sol = t_sol + h;
-
-    if(mod(index,(n/100))==0)
-        fprintf("|");
-    end
-end
-%}
-%% Displacement Displacement
-
-% = [x1_0, v1_0, x2_0, v2_0, u11_0, u11_1, u12_0, u12_1, u21_0, u21_1, u22_0, u22_1]
-
-% = [ x1_-1, v1_-1, x2_-1, v2_-1;x1_0, v1_0, x2_0, v2_0]
-initial_conditions = [sol_init(end,:);initial_conditions];
-debug = initial_conditions;
-
-for index = linspace(1,n,n)
-
-   [sys1(index,:), sys2(index,:),u_now]  = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,initial_conditions);
-
-   initial_conditions([5,6,7,8,9,10,11,12]) = [initial_conditions(6), u_now(1), initial_conditions(8), u_now(2), initial_conditions(10), u_now(3), initial_conditions(12), u_now(4)];
-
-   [sys1(index,:), sys2(index,:),u_now] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,initial_conditions);
-
-   initial_conditions([1 2 3 4 6 8 10 12]) = [sys1(index,:),sys2(index,:), u_now];
-    
 end
 
 
@@ -203,11 +153,10 @@ end
 
 
 
-function [sys1,sys2,u] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,inital,kopplung)  %sol = [[x1,v1],[x2,v2],u]  mit inital = [x1_0,v1_0,x2_0,v2_0,u0,u1]
+function [sys1,sys2] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,kopplung, inital)  %  mit inital = [x1_0,v1_0,x2_0,v2_0] kopplung = [x1_0,v1_0,x2_0,v2_0,x1_1,v1_1,x2_1,v2_1]
 
-    u0 = u_calc(c3,d3,inital(1,[1 2]), inital(1,[3 4]));   
-    u1 = u_calc(c3,d3,inital(2,[1 2]), inital(1,[3 4]));
-   
+   u0 = c3 * (kopplung(3)-kopplung(1)) + d3 * (kopplung(4)-kopplung(2));
+   u1 = c3 * (kopplung(7)-kopplung(5)) + d3 * (kopplung(8)-kopplung(6));
 
    [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,u0,u1,t0,h), [t_sol, t_sol + h], inital([1 2]));
    sys1 = sol(end,[1 2]);
@@ -215,56 +164,46 @@ function [sys1,sys2,u] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,inital,kop
    [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-u0,-u1,t0,h), [t_sol, t_sol + h], inital([3 4]));
    sys2 = sol(end,[1 2]);
 
-   u = zeros(1,4);
-   u(1) = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
-
-   function u = u_calc(c3,d3,sys1,sys2)
-        
-    u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
-
 end
 
-end
+function [sys1,sys2] = cosim_F_D(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,kopplung,inital)  % mit inital = [x1_0,v1_0,x2_0,v2_0] kopplung = [x1_0,v1_0,x2_0,v2_0,x1_1,v1_1,x2_1,v2_1]
 
-function [sys1,sys2,u] = cosim_F_D(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2],u] mit inital = [x1_0,v1_0,x2_0,v2_0,u0,u1,ux,uv] mit ux = [x2_0,x2_1] uv = [v2_0,v2_1]
+   u0 = c3 * (kopplung(3)-kopplung(1)) + d3 * (kopplung(4)-kopplung(2));
+   u1 = c3 * (kopplung(7)-kopplung(5)) + d3 * (kopplung(8)-kopplung(6));
 
-   [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,inital(5),inital(6),t0,h), [t_sol, t_sol + h], inital([1 2]));
+   [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,u0,u1,t0,h), [t_sol, t_sol + h], inital([1 2]));
    sys1 = sol(end,[1 2]);
 
-   [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c2,d2,m2,inital(7),inital(8),c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
+   [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c2,d2,m2,kopplung([1,5]),kopplung([2,6]),c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
    sys2 = sol(end,[1 2]);
 
-   u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
-
 end
 
-function [sys1,sys2,u] = cosim_D_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2],u]   mit inital = [x1_0,v1_0,x2_0,v2_0,ux,uv,u0,u1] mit ux = [x1_0,x1_0] uv = [v1_0,v1_1]
+function [sys1,sys2] = cosim_D_F(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,kopplung,inital)  % mit inital = [x1_0,v1_0,x2_0,v2_0] kopplung = [x1_0,v1_0,x2_0,v2_0,x1_1,v1_1,x2_1,v2_1]
 
-    [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,init(5),init(6),c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
+    u0 = c3 * (kopplung(3)-kopplung(1)) + d3 * (kopplung(4)-kopplung(2));
+    u1 = c3 * (kopplung(7)-kopplung(5)) + d3 * (kopplung(8)-kopplung(6));
+
+
+    [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,kopplung([3,7]),kopplung([4,8]),c3,d3,t0,h), [t_sol,t_sol + h], inital([1 2]));
     sys1 = sol(end,[1 2]);
 
-    [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-inital(7),-inital(8),t0,h), [t_sol, t_sol + h], inital([3 4]));
-    sys2 = sol(end,[1 2]);
-
-    u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
-
-end
-
-function [sys1,sys2] = cosim_D_D(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,h,inital)  %sol = [[x1,v1],[x2,v2]]  mit inital = [x1_0,v1_0,x2_0,v2_0,ux1,uv1,ux2,uv2] mit ux1 = [x1_0,x1_1] ...
-
-    [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,init(5),init(6),c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
-    sys1 = sol(end,[1 2]);
-
-    [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c2,d2,m2,inital(7),inital(8),c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
+    [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-u0,-u1,t0,h), [t_sol, t_sol + h], inital([3 4]));
     sys2 = sol(end,[1 2]);
 
 end
 
-function u = u(c3,d3,sys1,sys2)
-        
-    u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
+function [sys1,sys2] = cosim_D_D(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,kopplung,inital)  % mit inital = [x1_0,v1_0,x2_0,v2_0] kopplung = [x1_0,v1_0,x2_0,v2_0,x1_1,v1_1,x2_1,v2_1]
+
+    [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,kopplung([3,7]),kopplung([4,8]),c3,d3,t0,h), [t_sol,t_sol + h], inital([1 2]));
+    sys1 = sol(end,[1 2]);
+
+    [~,sol] = ode45(@(t,x) dgl_d(t,x(1),x(2),c2,d2,m2,kopplung([1,5]),kopplung([2,6]),c3,d3,t0,h), [t_sol,t_sol + h], inital([3 4]));
+    sys2 = sol(end,[1 2]);
 
 end
+
+
 
 %% Ideen
 %{
@@ -277,4 +216,13 @@ Die anderen Übertragungsfunktionen implementieremn
 
 Bei Force-Force müssen nur zwei u gespeichert werden, als initial
 condition impelemtieren?
+
+
+
+
+function u = u(c3,d3,sys1,sys2)
+        
+    u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
+
+end
 %}
