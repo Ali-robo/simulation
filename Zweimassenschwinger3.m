@@ -35,6 +35,64 @@ ode = @(t,x) [x(2); (-c1 * x(1) -d1 * x(2) + c3*(x(3)-x(1)) + d3 * (x(4) - x(2))
 [~,sol_init] = ode45(ode,[0,-h], initial_conditions);   %sol_init = [x1,v1,x2,v2] mit index = 1 t = 0, index = end t = -h
 
 
+%% sim mit verschiedenen Schrittweiten
+
+tToSim = 5;
+
+stepSize = 500;
+nStart = 100;
+nEnd = 10000;
+
+nSim = linspace(nStart,nEnd,1+(nEnd-nStart)/(stepSize));
+
+
+data = struct("maxFehler", zeros(4,size(nSim,2)));
+
+for numOfSim = linspace(1,size(nSim,2),size(nSim,2))
+
+    n = nSim(numOfSim);
+    h = tToSim/n;
+    initial_conditions = [sol_init(1,:)];
+    u = [sol_init(end,:);initial_conditions];
+    t_sol = 0;
+    sys1 = zeros(n,2);
+    sys2 = zeros(n,2);
+
+    time = linspace(0,h*(n-1),n);
+    [time_sol,sol] = ode45(ode,time, initial_conditions);
+
+    for index = linspace(1,n,n)
+
+       [sys1(index,:), sys2(index,:)]  = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,u,initial_conditions);
+    
+       u = [u([5 6 7 8]), sys1(index,:), sys2(index,:)];
+    
+       [sys1(index,:), sys2(index,:)] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,u,initial_conditions);
+    
+       
+       initial_conditions = [sys1(index,:),sys2(index,:)];
+       u([5 6 7 8]) =  [sys1(index,:), sys2(index,:)];
+    
+
+    end
+
+    data.("Sim" + numOfSim).sys1 = sys1;
+    data.("Sim" + numOfSim).sys2 = sys2;
+
+    data.("Sim" + numOfSim).fehler = [sys1,sys2] - sol;
+
+    data.maxFehler(:,numOfSim) = max(data.("Sim" + numOfSim).fehler);
+
+    fprintf("Sim "+ numOfSim + "done." + newline);
+
+end
+
+
+%plot
+
+plot(tToSim./nSim,data.maxFehler, "--or");
+
+
 %% Main Loop
 
 u = [sol_init(end,:);initial_conditions];
@@ -120,8 +178,8 @@ end
 
 function [sys1,sys2] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,kopplung, inital)  %  mit inital = [x1_0,v1_0,x2_0,v2_0] kopplung = [x1_0,v1_0,x2_0,v2_0,x1_1,v1_1,x2_1,v2_1]
 
-   u0 = c3 * (kopplung(3)-kopplung(1)) + d3 * (kopplung(4)-kopplung(2));
-   u1 = c3 * (kopplung(7)-kopplung(5)) + d3 * (kopplung(8)-kopplung(6));
+    u0 = c3 * (kopplung(3)-kopplung(1)) + d3 * (kopplung(4)-kopplung(2));
+    u1 = c3 * (kopplung(7)-kopplung(5)) + d3 * (kopplung(8)-kopplung(6));
 
     [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,u0,u1,t0,h), [t_sol, t_sol + h], inital([1 2]));
     sys1 = sol(end,[1 2]);
@@ -168,6 +226,10 @@ function [sys1,sys2] = cosim_D_D(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,kopplung,ini
     sys2 = sol(end,[1 2]);
 
 end
+
+
+
+
 
 
 
