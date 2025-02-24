@@ -92,18 +92,22 @@ end
 % = [x1_0, v1_0, x2_0, v2_0, u11_0, u11_1, u12_0, u12_1, u21_0, u21_1, u22_0, u22_1]
 
 % = [ x1_-1, v1_-1, x2_-1, v2_-1;x1_0, v1_0, x2_0, v2_0]
-initial_conditions = [sol_init(end,:);initial_conditions];
+initial_conditions;
+
+u = [sol_init(end,:);initial_conditions];
 debug = initial_conditions;
 
 for index = linspace(1,n,n)
 
-   [sys1(index,:), sys2(index,:),u_now]  = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,initial_conditions);
+   [sys1(index,:), sys2(index,:),u_now]  = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,u,initial_conditions);
 
-   initial_conditions([5,6,7,8,9,10,11,12]) = [initial_conditions(6), u_now(1), initial_conditions(8), u_now(2), initial_conditions(10), u_now(3), initial_conditions(12), u_now(4)];
+   u = [u([5 6 7 8]), u_now];
 
-   [sys1(index,:), sys2(index,:),u_now] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,initial_conditions);
+   [sys1(index,:), sys2(index,:),u_now] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,u,initial_conditions);
 
-   initial_conditions([1 2 3 4 6 8 10 12]) = [sys1(index,:),sys2(index,:), u_now];
+   initial_conditions = [sys1(index,:),sys2(index,:)];
+
+   u([5 6 7 8]) = u_now;
     
 end
 
@@ -209,20 +213,20 @@ function [sys1,sys2,u] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t0,t_sol,h,inital,kop
     u1 = u_calc(c3,d3,inital(2,[1 2]), inital(1,[3 4]));
    
 
-   [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,u0,u1,t0,h), [t_sol, t_sol + h], inital([1 2]));
-   sys1 = sol(end,[1 2]);
+    [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,u0,u1,t0,h), [t_sol, t_sol + h], inital([1 2]));
+    sys1 = sol(end,[1 2]);
 
-   [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-u0,-u1,t0,h), [t_sol, t_sol + h], inital([3 4]));
-   sys2 = sol(end,[1 2]);
+    [~,sol] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-u0,-u1,t0,h), [t_sol, t_sol + h], inital([3 4]));
+    sys2 = sol(end,[1 2]);
 
-   u = zeros(1,4);
-   u(1) = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
+    u = zeros(1,4);
+    u(1) = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
 
-   function u = u_calc(c3,d3,sys1,sys2)
+    function u = u_calc(c3,d3,sys1,sys2)
         
-    u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
+        u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
 
-end
+    end
 
 end
 
