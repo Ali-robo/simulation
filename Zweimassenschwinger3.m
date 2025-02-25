@@ -6,8 +6,8 @@ c1 = 400; d1 = 0.2; m1 = 6; c2 = 300; d2 = 0.3; m2 = 6; c3 = 80; d3 = 15;
 % Anfangsbedingungen: [x1(0), v1(0), x2(0), v2(0)]
 initial_conditions = [4, 2, 1, 3];
 
-n = 10000; %Anzahl Zeitschritte am Ende
-h = 0.001; %Zeitschritte
+n = 1000; %Anzahl Zeitschritte am Ende
+h = 0.01; %Zeitschritte
 t_sol = 0; %Zeipunkt, der in der Schleife berechnent wird
 
 %Zeitschritte für den Plot und die "richtige" Lösung
@@ -35,11 +35,12 @@ ode = @(t,x) [x(2); (-c1 * x(1) -d1 * x(2) + c3*(x(3)-x(1)) + d3 * (x(4) - x(2))
 [~,sol_init] = ode45(ode,[0,-h], initial_conditions);   %sol_init = [x1,v1,x2,v2] mit index = 1 t = 0, index = end t = -h
 
 
-%% sim mit verschiedenen Schrittweiten
+%% sim mit verschiedenen Schrittweiten - Fehlerberechnung
 
+load('matlab.mat');
 tToSim = 5;
 
-stepSize = 500;
+stepSize = 1000;
 nStart = 100;
 nEnd = 10000;
 
@@ -61,27 +62,27 @@ for numOfSim = linspace(1,size(nSim,2),size(nSim,2))
     time = linspace(0,h*(n-1),n);
     [time_sol,sol] = ode45(ode,time, initial_conditions);
 
-    for index = linspace(1,n,n)
+    for index = 1:n-1
 
-       [sys1(index,:), sys2(index,:)]  = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,u,initial_conditions);
+       [sys1(index+1,:), sys2(index+1,:)]  = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,u,initial_conditions);
     
-       u = [u([5 6 7 8]), sys1(index,:), sys2(index,:)];
+       u = [u([5 6 7 8]), sys1(index+1,:), sys2(index+1,:)];
     
-       [sys1(index,:), sys2(index,:)] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,u,initial_conditions);
+       [sys1(index+1,:), sys2(index+1,:)] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,u,initial_conditions);
     
        
-       initial_conditions = [sys1(index,:),sys2(index,:)];
-       u([5 6 7 8]) =  [sys1(index,:), sys2(index,:)];
+       initial_conditions = [sys1(index+1,:),sys2(index+1,:)];
+       u([5 6 7 8]) =  [sys1(index+1,:), sys2(index+1,:)];
     
-
+       t_sol = t_sol + h;
     end
 
     data.("Sim" + numOfSim).sys1 = sys1;
     data.("Sim" + numOfSim).sys2 = sys2;
 
-    data.("Sim" + numOfSim).fehler = [sys1,sys2] - sol;
+    data.("Sim" + numOfSim).fehler = abs([sys1,sys2] - sol);
 
-    data.maxFehler(:,numOfSim) = max(data.("Sim" + numOfSim).fehler);
+    data.maxFehler(:,numOfSim) = mean(data.("Sim" + numOfSim).fehler);
 
     fprintf("Sim "+ numOfSim + "done." + newline);
 
@@ -90,30 +91,67 @@ end
 
 %plot
 
-plot(tToSim./nSim,data.maxFehler, "--or");
+timeSteps = tToSim./nSim;
+
+loglog(timeSteps,data.maxFehler(1,:),"-or",timeSteps,data.maxFehler(2,:),"--or", timeSteps,data.maxFehler(3,:),"-ob", timeSteps,data.maxFehler(4,:),"--ob");
+legend("x1","v1","x2","v2");
+grid on;
 
 
 %% Main Loop
 
+load('matlab.mat')
 u = [sol_init(end,:);initial_conditions];
 
 
-for index = linspace(1,n,n)
+for k = 1:2
+    ax(k) = subplot(2,1,k);
+end
 
-   [sys1(index,:), sys2(index,:)]  = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,u,initial_conditions);
+debugText = strings(4,4);
+tempData = zeros(n,4);
 
-   u = [u([5 6 7 8]), sys1(index,:), sys2(index,:)];
+for index = 1:n-1
 
-   [sys1(index,:), sys2(index,:)] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,u,initial_conditions);
+   [sys1(index+1,:), sys2(index+1,:)]  = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol-h,t_sol,h,u,initial_conditions);
+
+   u = [u([5 6 7 8]), sys1(index+1,:), sys2(index+1,:)];
+
+   temp = abs([sol(index+1,[1 2]) - sys1(index+1,:), sol(index+1,[3 4]) - sys2(index+1,:)]);
+
+   debugText(1,:) = string(sol(index+1,:));
+   debugText(2,:) = string([sys1(index+1,:),sys2(index+1,:)]);
+
+   [sys1(index+1,:), sys2(index+1,:)] = cosim_F_F(c1,c2,c3,d1,d2,d3,m1,m2,t_sol,t_sol,h,u,initial_conditions);
 
    
-   initial_conditions = [sys1(index,:),sys2(index,:)];
-   u([5 6 7 8]) =  [sys1(index,:), sys2(index,:)];
+   initial_conditions = [sys1(index+1,:),sys2(index+1,:)];
+   u([5 6 7 8]) =  [sys1(index+1,:), sys2(index+1,:)];
+
+   tempData(index,:) = abs([sol(index+1,[1 2])- sys1(index+1,:), sol(index+1,[3 4]) - sys2(index+1,:)]) - temp;
+
+   debugText(3,:) = string([sys1(index+1,:),sys2(index+1,:)]);
+   debugText(4,:) = string(tempData(index,:));
+
+
+   disp(debugText);
+   newline;
+
+   t_sol = t_sol+h;
 
    if(mod(index,(n/100))==0)
         fprintf("|");
     end
 end
+
+subplot(ax(1));
+plot(time,tempData(:,1),"r"); hold on;
+plot(time,tempData(:,2),"b"); hold off;
+grid on;
+subplot(ax(2))
+plot(time,tempData(:,3),"r"); hold on;
+plot(time,tempData(:,4),"b"); hold off;
+grid on;
 
 
 %% plotting
@@ -148,6 +186,7 @@ ylim([-100,100]);
 xlabel("time");
 ylabel("x2, v2");
 legend("x2", "v2","x1x", "v1n");
+
 
 %%  Functions and DGL
 
@@ -245,12 +284,4 @@ Die anderen Übertragungsfunktionen implementieremn
 Bei Force-Force müssen nur zwei u gespeichert werden, als initial
 condition impelemtieren?
 
-
-
-
-function u = u(c3,d3,sys1,sys2)
-        
-    u = c3 * (sys2(1) - sys1(1)) + d3 * (sys2(2) - sys1(2));
-
-end
 %}
