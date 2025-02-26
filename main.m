@@ -11,8 +11,8 @@ sysPar = struct( ...
 
 initial_conditions = [4, 2, 1, 3];
 
-n = 1000; %Anzahl Zeitschritte am Ende
-h = 0.01; %Zeitschritte
+n = 10; %Anzahl Zeitschritte am Ende
+h = 0.1; %Zeitschritte
 
 data = ff(n,h,sysPar,initial_conditions);
 
