@@ -11,16 +11,20 @@ sysPar = struct( ...
 
 initial_conditions = [4, 2, 1, 3];
 
-n = 10; %Anzahl Zeitschritte am Ende
-h = 0.1; %Zeitschritte
+n = 10000; %Anzahl Zeitschritte am Ende
+h = 0.0001; %Zeitschritte
 
 data = ff(n,h,sysPar,initial_conditions);
 
-dataNumeric = calcNumericSol(sysPar,initial_conditions,h,n);
+dataNumeric = calcNumericSol(sysPar,initial_conditions,linspace(-h,h*n,n+2));
+
+plot(dataNumeric.time,sysPar.c3 .* (dataNumeric.x2-dataNumeric.x1) + sysPar.d3 .* (dataNumeric.v2 - dataNumeric.v1));hold off;
 
 
 %% plotting
 
+
+figure;
 time = linspace(0,h*n,n+1);
 
 nexttile

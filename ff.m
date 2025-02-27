@@ -14,6 +14,9 @@ function data = ff(n,h,sysPar,init)
     sys1(1,:) = init([1 2]);
     sys2(1,:) = init([3 4]);
 
+    uDebug = zeros(n+2,1);
+    uDebug([1 2]) = u;
+
     for index = 1:n
 
         [sys1(index+1,:),sys2(index+1,:),u_now] = ode45_F_F(c1,c2,c3,d1,d2,d3,m1,m2,-h,h,u,init); %%vorher 0
@@ -24,13 +27,17 @@ function data = ff(n,h,sysPar,init)
 
         u(2) = u_now;
 
+        uDebug(index + 2) = u_now;
+
         init = [sys1(index+1,:),sys2(index+1,:)];
 
     end
 
     data = struct("x1", sys1(:,1), "v1", sys1(:,2), "x2", sys2(:,1), "v2", sys2(:,2));
     
-
+    figure
+    size(uDebug)
+    plot(linspace(-h,h*n,n+2),uDebug); hold on;
 
 end
 
