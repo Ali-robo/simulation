@@ -16,7 +16,7 @@ initial_conditions = [4, 2, 1, 3];
 
 n = 1000; 
 h = 0.00001; %Zeitschritte
-count = 1000;
+count = 25000;
 
 
 dataFehler = struct("mean",struct);
@@ -42,6 +42,8 @@ for i = 1:count
     
 
 end
+
+%% plot
 
 figure;
 ax(1) = subplot(1,2,1);

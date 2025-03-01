@@ -7,7 +7,8 @@ function u = calcFirstU(sysPar,init,h)
     ode = @(t,x) [x(2); (-c1 * x(1) -d1 * x(2) + c3*(x(3)-x(1)) + d3 * (x(4) - x(2)))/m1;
               x(4); (-c2 * x(3) -d2 * x(4) - c3*(x(3)-x(1)) - d3 * (x(4) - x(2)))/m2];
 
-    [~,sol] = ode45(ode,[0,-h], init);
+    options =  odeset(RelTol=1e-10,AbsTol=1e-12);
+    [~,sol] = ode45(ode,[0,-h], init,options);
 
     u(1) = c3 * (sol(end,3) - sol(end,1)) + d3 * (sol(end,4)- sol(end,2));
     u(2) = c3 * (sol(1,3) - sol(1,1)) + d3 * (sol(1,4)- sol(1,2));
