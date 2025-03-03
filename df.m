@@ -23,22 +23,26 @@ function data = df(n,h,sysPar,init)
 
     sys2_0 = [sol(end,3),sol(end,4)];
 
-    
+
 %% main loop
-    for t = 1:n
+    for T = 1:n
 
-        [~,sys1(t,:)] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,sys2_0,sys2(t-1,:),c3,d3,-h,h),[0 h], init);
-        [~,sys2(t,:)] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,-u(1),-u(2),-h,h),[0 h], init);
+        [~,temp] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,sys2_0,sys2(T,:),c3,d3,-h,h),[0 h], init([1 2]));
+        sys1(T+1,:) = temp(end,:);
+        [~,temp] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-u(1),-u(2),-h,h),[0 h], init([3 4]));
+        sys2(T+1,:) = temp(end,:);
 
-        sys2_0 = sys2(t-1,:);
-        u = [u(2),calcU(c3,d3,sys1(t,:),sys2(t,:))];
+        sys2_0 = sys2(T,:);
+        u = [u(2),calcU(c3,d3,sys1(T,:),sys2(T,:))];
 
+        [~,temp] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,sys2_0,sys2(T+1,:),c3,d3,0,h),[0 h], init([1 2]));
+        sys1(T+1,:) = temp(end,:);
+        [~,temp] = ode45(@(t,x) dgl_f(t,x(1),x(2),c2,d2,m2,-u(1),-u(2),0,h),[0 h], init([3 4]));
+        sys2(T+1,:) = temp(end,:);
 
-        [~,sys1(t,:)] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,sys2_0,sys2(t,:),c3,d3,0,h),[0 h], init);
-        [~,sys2(t,:)] = ode45(@(t,x) dgl_f(t,x(1),x(2),c1,d1,m1,-u(1),-u(2),0,h),[0 h], init);
+        u(2) = calcU(c3,d3,sys1(T+1,:),sys2(T+1,:));
 
-        sys2_0 = sys2(t-1,:);
-        u(2) = calcU(c3,d3,sys1(t,:),sys2(t,:));
+        init = [sys1(T+1,:), sys2(T+1,:)];
 
     end
 

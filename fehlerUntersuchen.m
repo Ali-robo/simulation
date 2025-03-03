@@ -15,8 +15,8 @@ sysPar = struct( ...
 initial_conditions = [4, 2, 1, 3];
 
 n = 1000; 
-h = 0.00001; %Zeitschritte
-count = 25000;
+h = 0.0001; %Zeitschritte
+count = 5000;
 
 
 dataFehler = struct("mean",struct);
