@@ -22,7 +22,6 @@
     u(1) = c3 * (sol(end,3) - sol(end,1)) + d3 * (sol(end,4)- sol(end,2));
     u(2) = c3 * (sol(1,3) - sol(1,1)) + d3 * (sol(1,4)- sol(1,2));
 
-    u
     uDebug = zeros(n+2,1);
     uDebug([1 2]) = u;
      
@@ -43,10 +42,6 @@
         uDebug(t + 2) = u_now;
 
         init = [sys1(t+1,:),sys2(t+1,:)];
-
-        if(mod(t,(n/100))==0)
-            fprintf("|");
-        end
 
     end
 

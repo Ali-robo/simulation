@@ -15,8 +15,8 @@ sysPar = struct( ...
 initial_conditions = [4, 2, 1, 3];
 
 n = 1000; 
-h = 0.0001; %Zeitschritte
-count = 5000;
+h = 1e-5; %Zeitschritte
+count = 15000;
 
 
 dataFehler = struct("mean",struct);
@@ -25,7 +25,7 @@ dataNumeric = calcNumericSol(sysPar,initial_conditions,linspace(0,h*count*n,coun
 
 for i = 1:count
 
-    dataCosim = ff(n,h*i,sysPar,initial_conditions);
+    dataCosim = df(n,h*i,sysPar,initial_conditions);
 
     for va = ["x1","v1","x2","v2"]
 
@@ -40,7 +40,6 @@ for i = 1:count
     
     disp("Sim " + i);
     
-
 end
 
 %% plot
