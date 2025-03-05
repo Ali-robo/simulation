@@ -17,11 +17,12 @@ h = 0.0001; %Zeitschritte
 
 %ergebnisMain = fehlerU_h(sysPar,initial_conditions,h,n,1000);
 
-data = ff_const(n,h,sysPar,initial_conditions);
-dataNumeric = calcNumericSol(sysPar,initial_conditions,linspace(0,h*n,n+1));
 
-
-plotting(data,dataNumeric,h,n);
+% data = ff(n,h,sysPar,initial_conditions,1);
+% dataNumeric = calcNumericSol(sysPar,initial_conditions,linspace(0,h*n,n+1));
+% 
+% 
+% plotting(data,dataNumeric,h,n);
 
 %fehlerU_h(sysPar,data,dataNumeric,n,h);
 %fehlerU(sysPar,data,dataNumeric,n,h);

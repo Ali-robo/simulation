@@ -18,8 +18,6 @@ function data = ff_const(n,h,sysPar,init)
     for T = 1:n
 
 
-
-
         [~,temp] = ode45(@(t,x) dgl_f_const(t,x(1),x(2),c1,d1,m1,u),[0 h], sys1(T,:),options);
         sys1(T+1,:) = temp(end,:);
         [~,temp] = ode45(@(t,x) dgl_f_const(t,x(1),x(2),c2,d2,m2,-u),[0 h], sys2(T,:),options);
