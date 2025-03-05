@@ -1,6 +1,5 @@
 %fehler Untersuchen
 
-
 sysPar = struct( ...
     'c1', 400, ...
     'c2', 300, ...
@@ -15,59 +14,66 @@ sysPar = struct( ...
 initial_conditions = [4, 2, 1, 3];
 
 n = 10000; 
-h_start = 1e-4; %Zeitschritte
+h_start = 1e-4; 
 step = h_start;
-count = 10;
+count = 1000;
 
+%dataNumeric = calcNumericSol(sysPar,initial_conditions,linspace(0,h_start*count*n,count*n+1));
 
-dataFehler = struct("h", zeros(count,1),"x",zeros(count,1),"v",zeros(count,1),"test",zeros(count,1));
-
-dataNumeric = calcNumericSol(sysPar,initial_conditions,linspace(0,h*count*n,count*n+1));
-
-% meanX = [sum([dataNumeric.x1,dataNumeric.x2],1)]./n;
-% meanV = [sum([dataNumeric.v1,dataNumeric.v2],1)]./n;
+dataFehler = zeros(count,2);
+timeTotal = 0;
 
 for i = 1:count
 
-    dataCosim = ff_const(n,h*i,sysPar,initial_conditions);
+    tic
+
+    dataCosim = ff(n,h_start*i,sysPar,initial_conditions);
+    
+    dataFehler(i,:) = localFehler(dataCosim,h_start*i,n,sysPar);
+    
+    timeTotal = timeTotal + toc;
+    
+    disp("Sim " + i + ", Time left " + (timeTotal/(i*60)*(count-i)));
+
+end
+
+ %% plot
+
+figure;
+ax = axes;
+
+loglog(h_start*(1:count),dataFehler);
+legend(ax,"x","v");
+xlabel(ax,"h");
+ylabel("error");
+grid on;
+
+
+%% functions
+
+function fehler = globalFehler(dataCosim, dataNumeric,i)
 
     x1Numeric = dataNumeric.x1([linspace(1,i*n+1,((i*n)/i)+1)]);
     x2Numeric = dataNumeric.x2([linspace(1,i*n+1,((i*n)/i)+1)]);
     v1Numeric = dataNumeric.v1([linspace(1,i*n+1,((i*n)/i)+1)]);
     v2Numeric = dataNumeric.v2([linspace(1,i*n+1,((i*n)/i)+1)]);
 
-    plotting(dataCosim, struct("x1", x1Numeric,"v1", v1Numeric,"x2", x2Numeric, "v2", v2Numeric,"time", linspace(0,h*n*i,n+1)),h*i,n);
 
     meanX = [sum(x1Numeric),sum(x2Numeric)]./n;
     meanV = [sum(v1Numeric),sum(v2Numeric)]./n;
     
-    dataFehler.x(i) = globalFehler([x1Numeric,x2Numeric],[dataCosim.x1,dataCosim.x2],meanX);
+    fehler(1) = calcFehler([x1Numeric,x2Numeric],[dataCosim.x1,dataCosim.x2],meanX);
 
-    dataFehler.v(i) = globalFehler([v1Numeric,v2Numeric],[dataCosim.v1,dataCosim.v2],meanV);
-
-    dataFehler.test(i) = abs(mean(dataCosim.x1 - x1Numeric));
-    
-    disp("Sim " + i);
-    
-end
-
-
-
-%% functions
-
-
-function fehler = globalFehler(xGenau, x,xMean)
-
-    fehler = sqrt( ...
-        sum((xGenau(:,1) - x(:,1)).^2) / sum((xGenau(:,1) - xMean(1)).^2) + ...
-        sum((xGenau(:,2) - x(:,2)).^2) / sum((xGenau(:,2) - xMean(2)).^2));
+    fehler(2) = calcFehler([v1Numeric,v2Numeric],[dataCosim.v1,dataCosim.v2],meanV);
 
 end
 
-function plotting(data,dataNumeric,h,n)
+
+
+function plotting(data,dataNumeric,h_start,n)
 
     figure;
-    time = linspace(0,h*n,n+1);
+    time = linspace(0,h_start*n,n+1);
     
     nexttile
     
@@ -104,21 +110,44 @@ function plotting(data,dataNumeric,h,n)
 
 end
 
+function fehler = localFehler(dataCosim, h, n,sysPar)
+
+    c1 = sysPar.c1; c2 = sysPar.c2; c3 = sysPar.c3;
+    d1 = sysPar.d1; d2 = sysPar.d2; d3 = sysPar.d3;
+    m1 = sysPar.m1; m2 = sysPar.m2;
+
+    ode = @(t,x) [x(2); (-c1 * x(1) -d1 * x(2) + c3*(x(3)-x(1)) + d3 * (x(4) - x(2)))/m1;
+              x(4); (-c2 * x(3) -d2 * x(4) - c3*(x(3)-x(1)) - d3 * (x(4) - x(2)))/m2];
+
+    options =  odeset(RelTol=1e-10,AbsTol=1e-12);
+    
+    dataLokal = zeros(n+1,4);
+    dataLokal(1,:) = [dataCosim.x1(1),dataCosim.v1(1),dataCosim.x2(1),dataCosim.v2(1)];
+
+    for T = 1:n
+
+        [~,temp] = ode45(ode,[0 h], [dataCosim.x1(T),dataCosim.v1(T),dataCosim.x2(T),dataCosim.v2(T)], options);
+        dataLokal(T+1,:) = temp(end,:);
+
+    end
+
+    xMean = sum(dataLokal([1 3]),1)./n;
+    vMean = sum(dataLokal([2 4]),1)./n;
 
 
 
+    fehler(1) = calcFehler(dataLokal(:,[1 3]),[dataCosim.x1,dataCosim.x2],xMean);
 
- %sum(sum((xGenau - x).^2,1) / sum((xGenau - xMean).^2,1));
+    fehler(2) = calcFehler(dataLokal(:,[2 4]),[dataCosim.v1,dataCosim.v2],vMean);
 
- %% plot
+end
 
-figure;
-ax = axes;
+function fehler = calcFehler(xGenau, x,xMean)
 
-loglog(h*(1:count),dataFehler.x); hold on;
-loglog(h*(1:count),dataFehler.v); 
-loglog(h*(1:count),dataFehler.test); hold off;
-legend(ax,"x","v","absoluter Fehler x1 mean");
-xlabel(ax,"h");
-ylabel("global error");
-grid on;
+    fehler = sqrt( ...
+        sum((xGenau(:,1) - x(:,1)).^2) / sum((xGenau(:,1) - xMean(1)).^2) + ...
+        sum((xGenau(:,2) - x(:,2)).^2) / sum((xGenau(:,2) - xMean(2)).^2));
+
+end
+
+

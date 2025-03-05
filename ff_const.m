@@ -9,8 +9,6 @@ function data = ff_const(n,h,sysPar,init)
 
     sys1 = zeros(n+1,2);
     sys2 = zeros(n+1,2);
-
-
     sys1(1,:) = init([1 2]);
     sys2(1,:) = init([3 4]);
 
@@ -18,6 +16,9 @@ function data = ff_const(n,h,sysPar,init)
 
 
     for T = 1:n
+
+
+
 
         [~,temp] = ode45(@(t,x) dgl_f_const(t,x(1),x(2),c1,d1,m1,u),[0 h], sys1(T,:),options);
         sys1(T+1,:) = temp(end,:);
