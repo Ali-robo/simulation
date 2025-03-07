@@ -7,7 +7,7 @@ function data = calcNumericSol(sysPar,init,time)
     ode = @(t,x) [x(2); (-c1 * x(1) -d1 * x(2) + c3*(x(3)-x(1)) + d3 * (x(4) - x(2)))/m1;
               x(4); (-c2 * x(3) -d2 * x(4) - c3*(x(3)-x(1)) - d3 * (x(4) - x(2)))/m2];
 
-    options =  odeset(RelTol=1e-10,AbsTol=1e-12);
+    options =  odeset(RelTol=1e-14,AbsTol=1e-20);
 
     [timeSol,sol] = ode45(ode,time,init,options);
 
