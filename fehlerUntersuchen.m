@@ -13,10 +13,10 @@ sysPar = struct( ...
 
 initial_conditions = [4, 2, 1, 3];
 
-n = 10000; 
+n = 1000; 
 h_start = 1e-4; 
 step = h_start;
-count = 1000;
+count = 10;
 
 %dataNumeric = calcNumericSol(sysPar,initial_conditions,linspace(0,h_start*count*n,count*n+1));
 
@@ -27,7 +27,7 @@ for i = 1:count
 
     tic
 
-    dataCosim = ff(n,h_start*i,sysPar,initial_conditions);
+    dataCosim = dd(n,h_start*i,sysPar,initial_conditions,1);
     
     dataFehler(i,:) = localFehler(dataCosim,h_start*i,n,sysPar);
     

@@ -1,4 +1,6 @@
 function data = df(n,h,sysPar,init,k)
+
+
     c1 = sysPar.c1; c2 = sysPar.c2; c3 = sysPar.c3;
     d1 = sysPar.d1; d2 = sysPar.d2; d3 = sysPar.d3;
     m1 = sysPar.m1; m2 = sysPar.m2;
@@ -14,17 +16,10 @@ function data = df(n,h,sysPar,init,k)
     %% ersten u bestimmen
     [u,~,sys2_0] = calcFirstU(sysPar,init,h,k);
 
-    time = 0;
-    tic;
 
 %% main loop
     for T = 1:n
 
-        if(mod(T,n/100) == 0)
-            time = time + toc;
-            disp("Noch " + ((time/(T*60))*(n-T))+ " Min")
-            tic;
-        end
 
         t0 = linspace(-h*k,0,k+1);
 
@@ -52,7 +47,6 @@ function data = df(n,h,sysPar,init,k)
         
     end
 
-    disp("Benötigte Zeit: " + time);
     data = struct("x1", sys1(:,1), "v1" , sys1(:,2), "x2", sys2(:,1), "v2", sys2(:,2));
 
 end
