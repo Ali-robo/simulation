@@ -11,11 +11,10 @@ sysPar = struct( ...
 
 initial_conditions = [4, 2, 1, 3];
 
-n = 1000; %Anzahl Zeitschritte am Ende
-h = 0.001; %Zeitschritte
+%n = 1000; %Anzahl Zeitschritte am Ende
+%h = 0.001; %Zeitschritte
 
-
-dataLocalFehler = localFehler(sysPar,n,h,0.001,initial_conditions);
+plottingLocalFehler(dataFehler,0.00005*(1:4332))
 
 %plottingLocalFehler(dataLocalFehler,linspace(h,h + (2 * 0.00005),3))
 
@@ -155,9 +154,9 @@ function dataFehler = localFehler(sysPar, n, h_start,h_step, init)
         for k = 0:3
             
             dataFehler.ff.("k" + k)(index,:) = localFehler(ff(n,h,sysPar,init,k),h,n,sysPar);
-            dataFehler.df.("k" + k)(index,:) = localFehler(df(n,h,sysPar,init,k),h,n,sysPar);
-            dataFehler.fd.("k" + k)(index,:) = localFehler(fd(n,h,sysPar,init,k),h,n,sysPar);
-            dataFehler.dd.("k" + k)(index,:) = localFehler(dd(n,h,sysPar,init,k),h,n,sysPar);
+            % dataFehler.df.("k" + k)(index,:) = localFehler(df(n,h,sysPar,init,k),h,n,sysPar);
+            % dataFehler.fd.("k" + k)(index,:) = localFehler(fd(n,h,sysPar,init,k),h,n,sysPar);
+            % dataFehler.dd.("k" + k)(index,:) = localFehler(dd(n,h,sysPar,init,k),h,n,sysPar);
 
         end
 
@@ -165,40 +164,9 @@ function dataFehler = localFehler(sysPar, n, h_start,h_step, init)
         disp("noch " + (time)/((index)*60)*(reps+1-index) + " min");
        
         index = index +1;
+        dataFehler.H(end) = h;
     end
-
-
-
-    %% plotting
-
-   index = 1;
-    for koppl = ["ff","df","fd","dd"]
-        figure
-        ax1 = subplot(1,2,1); hold on;
-        ax2 = subplot(1,2,2); hold on;
-        for k = ["k0","k1","k2","k3"]
-
-            loglog(ax1,H,dataFehler.(koppl).(k)(:,1));
-            loglog(ax2,H,dataFehler.(koppl).(k)(:,2));
-
-        end
-        
-        hold(ax1,"off");
-        hold(ax2,"off");
-        
-        title(ax1,"locError x");
-        title(ax2,"locError v");
-
-        legend(ax1,"k0","k1","k2","k3")
-        legend(ax2,"k0","k1","k2","k3")
-
-        index = index + 2;
-    end
-
-
     
-
-
     function fehler = localFehler(dataCosim, h, n,sysPar)
     
         c1 = sysPar.c1; c2 = sysPar.c2; c3 = sysPar.c3;
@@ -232,7 +200,6 @@ function dataFehler = localFehler(sysPar, n, h_start,h_step, init)
     end
 
 
-
     function fehler = calcFehler(xGenau, x,xMean)
 
     fehler = sqrt( ...
@@ -248,25 +215,34 @@ end
 function plottingLocalFehler(dataFehler,H)
 
     index = 1;
-    for koppl = ["ff","df","fd","dd"]
+    for koppl = fieldnames(dataFehler)'
         figure
-        ax1 = subplot(1,2,1); hold on;
-        ax2 = subplot(1,2,2); hold on;
-        for k = ["k0","k1","k2","k3"]
+        ax1 = subplot(1,2,1);
+        ax2 = subplot(1,2,2);
+        for k = fieldnames(dataFehler.(koppl{1}))'
 
-            loglog(ax1,H,dataFehler.(koppl).(k)(:,1));
-            loglog(ax2,H,dataFehler.(koppl).(k)(:,2));
+            loglog(ax1,H,dataFehler.(koppl{1}).(k{1})(:,1));
+            loglog(ax2,H,dataFehler.(koppl{1}).(k{1})(:,2));
+
+            hold(ax1,"on");
+            hold(ax2,"on");
 
         end
         
+        % xlim(ax1,[1e-5 , 1e-2])
+        % xlim(ax2,[1e-5 , 1e-2])
+
         hold(ax1,"off");
         hold(ax2,"off");
-        
-        title(ax1,"locError x");
-        title(ax2,"locError v");
 
-        legend(ax1,"k0","k1","k2","k3")
-        legend(ax2,"k0","k1","k2","k3")
+        grid(ax1,"minor");
+        grid(ax2,"minor");
+        
+        title(ax1,"locError x, Kopplung: " + (koppl{1}));
+        title(ax2,"locError v, Kopplung: " + (koppl{1}));
+
+        legend(ax1,fieldnames(dataFehler.(koppl{1})))
+        legend(ax2,fieldnames(dataFehler.(koppl{1})))
 
         index = index + 2;
     end
