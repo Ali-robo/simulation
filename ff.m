@@ -40,6 +40,7 @@ function data = ff(n,h,sysPar,init,k)
 
         u(end) = u_now;
 
+
         init = [sys1(T+1,:),sys2(T+1,:)];
 
     end

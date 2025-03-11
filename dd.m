@@ -1,7 +1,5 @@
 function data = dd(n,h,sysPar,init,k)
 
-    
-    
 
     c1 = sysPar.c1; c2 = sysPar.c2; c3 = sysPar.c3;
     d1 = sysPar.d1; d2 = sysPar.d2; d3 = sysPar.d3;
@@ -33,8 +31,8 @@ function data = dd(n,h,sysPar,init,k)
         sys1_0 = circshift(sys1_0,[-1 0]);
         sys2_0 = circshift(sys2_0,[-1 0]);
 
-        sys1_0(end,:) = sys1(T,:);
-        sys2_0(end,:) = sys2(T,:);
+        sys1_0(end,:) = sys1(T+1,:);
+        sys2_0(end,:) = sys2(T+1,:);
 
         t0 = linspace(-h*(k-1),h,k+1);
 
@@ -43,8 +41,8 @@ function data = dd(n,h,sysPar,init,k)
         [~,temp] = ode45(@(t,x) dgl_d(t,x(1),x(2),c2,d2,m2,sys1_0,c3,d3,t0,k),[0 h],sys2(T,:),options);
         sys2(T+1,:) = temp(end,:);
 
-        sys1_0(end,:) = sys1(T,:);
-        sys2_0(end,:) = sys2(T,:);
+        sys1_0(end,:) = sys1(T+1,:);
+        sys2_0(end,:) = sys2(T+1,:);
 
     end
 

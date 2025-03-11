@@ -20,7 +20,6 @@ function data = df(n,h,sysPar,init,k)
 %% main loop
     for T = 1:n
 
-
         t0 = linspace(-h*k,0,k+1);
 
         [~,temp] = ode45(@(t,x) dgl_d(t,x(1),x(2),c1,d1,m1,sys2_0,c3,d3,t0,k),[0 h], sys1(T,:),options);
@@ -32,8 +31,7 @@ function data = df(n,h,sysPar,init,k)
         sys2_0(end,:) = sys2(T+1,:);
 
         u = circshift(u,[0 -1]);
-        u(end) = calcU(c3,d3,sys1(T,:),sys2(T,:));
-
+        u(end) = calcU(c3,d3,sys1(T+1,:),sys2(T+1,:));
 
         t0 = linspace(-h*(k-1),h,k+1);
 

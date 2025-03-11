@@ -18,7 +18,6 @@ function [u,sys1,sys2] = calcFirstU(sysPar,init,h,k)
         sys1 = init([1 2]);
         sys2 = init([3 4]);
 
-
     else
 
         ode = @(t,x) [x(2); (-c1 * x(1) -d1 * x(2) + c3*(x(3)-x(1)) + d3 * (x(4) - x(2)))/m1;
@@ -26,7 +25,8 @@ function [u,sys1,sys2] = calcFirstU(sysPar,init,h,k)
     
         options =  odeset(RelTol=1e-10,AbsTol=1e-12);
         [~,sol] = ode45(ode,linspace(0,-h*(k),k+1),init,options);
-    
+        
+
         u(1) = c3 * (sol(end,3) - sol(end,1)) + d3 * (sol(end,4)- sol(end,2));
         u(end) = c3 * (sol(1,3) - sol(1,1)) + d3 * (sol(1,4)- sol(1,2));
 
@@ -37,11 +37,12 @@ function [u,sys1,sys2] = calcFirstU(sysPar,init,h,k)
         sys2(end,:) = sol(1,[3 4]);
 
 
-        for i = 1:(k-2)
-            u(k-i) = c3 * (sol(i+1,3) - sol(i+1,1)) + d3 * (sol(i+1,4)- sol(i+1,2));
+        for i = 1:(k-1)
+            
+            u(k+1-i) = c3 * (sol(i+1,3) - sol(i+1,1)) + d3 * (sol(i+1,4)- sol(i+1,2));
 
-            sys1(k-i,:) = sol(i+1,[1 2]);
-            sys2(k-i,:) = sol(i+1,[3 4]);
+            sys1(k+1-i,:) = sol(i+1,[1 2]);
+            sys2(k+1-i,:) = sol(i+1,[3 4]);
 
         end
 
